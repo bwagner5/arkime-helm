@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "arkime.fullname" . }}-central-viewer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "arkime.labels" . | nindent 4 }}
+  {{- with .Values.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.replicas }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "arkime.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "arkime.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "arkime.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
+      {{- with .Values.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8}}
+      {{- end }}
+      {{- if .Values.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      {{- with .Values.schedulerName }}
+      schedulerName: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: arkime-viewer
+          securityContext:
+            runAsUser: 65532
+            runAsGroup: 65532
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          image: "{{ .Values.viewer.image.repository }}:{{ .Values.viewer.image.tag }}"
+          imagePullPolicy: {{ .Values.viewer.imagePullPolicy }}
+          env:
+          {{- with .Values.viewer.env }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.viewer.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+          - name: arkime-config
+            mountPath: /opt/arkime/etc/
+      volumes:
+      - name: arkime-config
+        configMap:
+          name: {{ include "arkime.fullname" . }}-config-map

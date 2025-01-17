@@ -1,0 +1,106 @@
+# -- Overrides the chart's name.
+nameOverride: ""
+# -- Overrides the chart's computed fullname.
+fullnameOverride: ""
+# -- Additional labels to add into metadata.
+additionalLabels: {}
+# -- Additional annotations to add into metadata.
+additionalAnnotations: {}
+# -- Image pull policy for container images.
+imagePullPolicy: IfNotPresent
+# -- Image pull secrets for container images.
+imagePullSecrets: []
+# -- Node selectors to schedule the pod to nodes with labels.
+nodeSelector:
+  kubernetes.io/os: linux
+# -- Tolerations to allow the pod to be scheduled to nodes with taints.
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+# -- Specify which Kubernetes scheduler should dispatch the pod.
+schedulerName: default-scheduler
+# -- Configure the DNS Policy for the pod
+dnsPolicy: ClusterFirst
+# -- Configure DNS Config for the pod
+dnsConfig: {}
+#  options:
+#    - name: ndots
+#      value: "1"
+# -- Node selectors to schedule the pod to nodes with labels.
+# -- Global Arkime settings used for all components
+serviceAccount:
+  create: true
+  name: arkime
+  annotations: {}
+settings:
+  elasticsearch: "http://host.docker.internal:9200"
+# -- Arkime Configuration (config.ini)
+configMap:  
+  create: true
+
+# -- capture is a daemonset
+capture:
+  image: 
+    repository: ghcr.io/arkime/arkime/arkime
+    tag: v5-latest
+    #digest:
+  command: ["/opt/arkime/bin/docker.sh", "capture", "--update-geo", "--debug", "--debug"]
+  env: []
+  envFrom: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  # -- Additional volumeMounts for the controller pod.
+  extraVolumeMounts: []
+  nodeSelector:
+    arkime-capture: "true"
+  # -- Arkime settings
+  settings:
+    interface: "eth0"
+
+# -- viewer is a daemonset
+viewer:
+  image: 
+    repository: ghcr.io/arkime/arkime/arkime
+    tag: v5-latest
+    #digest:
+  command: ["/opt/arkime/bin/docker.sh", "viewer", "--debug", "--debug"]
+  env: []
+  envFrom: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  # -- Additional volumeMounts for the controller pod.
+  extraVolumeMounts: []
+  nodeSelector:
+    arkime-viewer: "true"
+
+# -- central-viewer is a daemonset
+central-viewer:
+  replicas: 2
+  image: 
+    repository: ghcr.io/arkime/arkime/arkime
+    tag: v5-latest
+    #digest:
+  command: ["/opt/arkime/bin/docker.sh", "viewer", "-n", "central-viewer"]
+  env: []
+  envFrom: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  # -- Additional volumeMounts for the controller pod.
+  extraVolumeMounts: []
+  nodeSelector: {}
+

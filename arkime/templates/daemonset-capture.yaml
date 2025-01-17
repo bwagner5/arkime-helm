@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "arkime.fullname" . }}-capture
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "arkime.labels" . | nindent 4 }}
+  {{- with .Values.additionalAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "arkime.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "arkime.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "arkime.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
+      {{- with .Values.dnsPolicy }}
+      dnsPolicy: {{ . }}
+      {{- end }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8}}
+      {{- end }}
+      {{- if .Values.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      {{- with .Values.schedulerName }}
+      schedulerName: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: arkime-capture
+        image: "{{ .Values.capture.image.repository }}:{{ .Values.capture.image.tag }}"
+        imagePullPolicy: {{ .Values.capture.image.pullPolicy }}
+        env:
+        - name: ARKIME__elasticsearch
+          value: "{{ .Values.settings.elasticsearch }}"
+        - name: ARKIME__interface
+          value: "{{ .Values.capture.settings.interface }}"
+        command:
+          {{- toYaml .Values.capture.command | nindent 8 }}
+        volumeMounts:
+        - name: arkime-config
+          mountPath: /opt/arkime/etc/
+      volumes:
+      - name: arkime-config
+        configMap:
+          name: {{ include "arkime.fullname" . }}-config-map

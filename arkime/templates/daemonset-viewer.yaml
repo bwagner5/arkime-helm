@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "arkime.labels" . | nindent 4 }}
-  {{- with .Values.additionalAnnotations }}
+  {{- with .Values.viewer.additionalAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -21,39 +21,39 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       annotations:
-        {{- with .Values.podAnnotations }}
+        {{- with .Values.viewer.podAnnotations }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.viewer.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "arkime.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
+      {{- with .Values.viewer.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.priorityClassName }}
+      {{- with .Values.viewer.priorityClassName }}
       priorityClassName: {{ . | quote }}
       {{- end }}
-      {{- with .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.viewer.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ . }}
       {{- end }}
-      {{- with .Values.dnsPolicy }}
+      {{- with .Values.viewer.dnsPolicy }}
       dnsPolicy: {{ . }}
       {{- end }}
-      {{- with .Values.dnsConfig }}
+      {{- with .Values.viewer.dnsConfig }}
       dnsConfig:
         {{- toYaml . | nindent 8}}
       {{- end }}
-      {{- if .Values.hostNetwork }}
+      {{- if .Values.viewer.hostNetwork }}
       hostNetwork: true
       {{- end }}
-      {{- with .Values.schedulerName }}
+      {{- with .Values.viewer.schedulerName }}
       schedulerName: {{ . | quote }}
       {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.viewer.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -64,6 +64,7 @@ spec:
         env:
         - name: ARKIME__elasticsearch
           value: "{{ .Values.settings.elasticsearch }}"
+        {{- toYaml .Values.viewer.env | nindent 8 }}
         command:
           {{- toYaml .Values.viewer.command | nindent 8 }}
         volumeMounts:

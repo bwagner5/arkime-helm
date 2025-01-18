@@ -10,9 +10,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  replicas: {{ .Values.replicas }}
-  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
-  {{- with .Values.strategy }}
+  replicas: {{ .Values.centralViewer.replicas }}
+  revisionHistoryLimit: {{ .Values.centralViewer.revisionHistoryLimit }}
+  {{- with .Values.centralViewer.strategy }}
   strategy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -27,11 +27,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       annotations:
-        {{- with .Values.podAnnotations }}
+        {{- with .Values.centralViewer.podAnnotations }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.centralViewer.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -40,49 +40,48 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.priorityClassName }}
+      {{- with .Values.centralViewer.priorityClassName }}
       priorityClassName: {{ . | quote }}
       {{- end }}
-      {{- with .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.centralViewer.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ . }}
       {{- end }}
-      {{- with .Values.dnsPolicy }}
+      {{- with .Values.centralViewer.dnsPolicy }}
       dnsPolicy: {{ . }}
       {{- end }}
-      {{- with .Values.dnsConfig }}
+      {{- with .Values.centralViewer.dnsConfig }}
       dnsConfig:
         {{- toYaml . | nindent 8}}
       {{- end }}
-      {{- if .Values.hostNetwork }}
+      {{- if .Values.centralViewer.hostNetwork }}
       hostNetwork: true
       {{- end }}
-      {{- with .Values.schedulerName }}
+      {{- with .Values.centralViewer.schedulerName }}
       schedulerName: {{ . | quote }}
       {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.centralViewer.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+      - name: arkime-db-init
+        image: "{{ .Values.centralViewer.image.repository }}:{{ .Values.centralViewer.image.tag }}"
+        imagePullPolicy: {{ .Values.centralViewer.imagePullPolicy }}
+        command: ["/opt/arkime/db/db.pl", "--insecure", "--esuser", "admin:admin", {{ .Values.settings.elasticsearch }}, "init", "--ifneeded" ]
       containers:
-        - name: arkime-viewer
-          securityContext:
-            runAsUser: 65532
-            runAsGroup: 65532
-            runAsNonRoot: true
-            seccompProfile:
-              type: RuntimeDefault
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            readOnlyRootFilesystem: true
-          image: "{{ .Values.viewer.image.repository }}:{{ .Values.viewer.image.tag }}"
-          imagePullPolicy: {{ .Values.viewer.imagePullPolicy }}
+        - name: arkime-central-viewer
+          image: "{{ .Values.centralViewer.image.repository }}:{{ .Values.centralViewer.image.tag }}"
+          imagePullPolicy: {{ .Values.centralViewer.imagePullPolicy }}
+          command:
+            {{- toYaml .Values.centralViewer.command | nindent 12 }}
           env:
-          {{- with .Values.viewer.env }}
+            - name: ARKIME__elasticsearch
+              value: "{{ .Values.settings.elasticsearch }}"
+          {{- with .Values.centralViewer.env }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.viewer.envFrom }}
+          {{- toYaml .Values.centralViewer.env | nindent 12 }}
+          {{- with .Values.centralViewer.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}

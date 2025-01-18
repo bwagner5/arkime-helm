@@ -10,7 +10,7 @@ Expand the name of the chart.
 {{/*
 Create a default fully qualified app name.
 We truncate at 48 chars because some Kubernetes name fields are limited to this (by the DNS naming spec). 
-This leaves room for the suffix as well "-capture", "-viewer", "-central-viewer".
+This leaves room for the suffix as well "-capture", "-viewer", "-centralViewer".
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "arkime.fullname" -}}

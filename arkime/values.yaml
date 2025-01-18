@@ -2,38 +2,14 @@
 nameOverride: ""
 # -- Overrides the chart's computed fullname.
 fullnameOverride: ""
-# -- Additional labels to add into metadata.
-additionalLabels: {}
-# -- Additional annotations to add into metadata.
-additionalAnnotations: {}
-# -- Image pull policy for container images.
-imagePullPolicy: IfNotPresent
-# -- Image pull secrets for container images.
-imagePullSecrets: []
-# -- Node selectors to schedule the pod to nodes with labels.
-nodeSelector:
-  kubernetes.io/os: linux
-# -- Tolerations to allow the pod to be scheduled to nodes with taints.
-tolerations:
-  - key: CriticalAddonsOnly
-    operator: Exists
-# -- Specify which Kubernetes scheduler should dispatch the pod.
-schedulerName: default-scheduler
-# -- Configure the DNS Policy for the pod
-dnsPolicy: ClusterFirst
-# -- Configure DNS Config for the pod
-dnsConfig: {}
-#  options:
-#    - name: ndots
-#      value: "1"
-# -- Node selectors to schedule the pod to nodes with labels.
-# -- Global Arkime settings used for all components
+# -- Create a service account for all pods to use
 serviceAccount:
   create: true
   name: arkime
   annotations: {}
+# -- Global Arkime settings used for all components
 settings:
-  elasticsearch: "http://host.docker.internal:9200"
+  elasticsearch: "https://opensearch:9200"
 # -- Arkime Configuration (config.ini)
 configMap:  
   create: true
@@ -44,8 +20,14 @@ capture:
     repository: ghcr.io/arkime/arkime/arkime
     tag: v5-latest
     #digest:
-  command: ["/opt/arkime/bin/docker.sh", "capture", "--update-geo", "--debug", "--debug"]
-  env: []
+  command: ["/opt/arkime/bin/docker.sh", "capture", "--insecure", "--debug", "--debug"]
+  env:
+    - name: ARKIME__elasticsearchBasicAuth
+      value: "admin:admin"
+    - name: ARKIME__interface
+      value: "eth0"
+    - name: ARKIME__pcapReadMethod
+      value: tpacketv3
   envFrom: []
   resources:
     requests:
@@ -57,10 +39,30 @@ capture:
   # -- Additional volumeMounts for the controller pod.
   extraVolumeMounts: []
   nodeSelector:
+    kubernetes.io/os: linux
     arkime-capture: "true"
+  # -- Additional labels to add into metadata.
+  additionalLabels: {}
+  # -- Additional annotations to add into metadata.
+  additionalAnnotations: {}
+  # -- Image pull policy for container images.
+  imagePullPolicy: IfNotPresent
+  # -- Image pull secrets for container images.
+  imagePullSecrets: []
+  # -- Tolerations to allow the pod to be scheduled to nodes with taints.
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+  # -- Specify which Kubernetes scheduler should dispatch the pod.
+  schedulerName: default-scheduler
+  # -- Configure the DNS Policy for the pod
+  dnsPolicy: ClusterFirst
+  # -- Configure DNS Config for the pod
+  dnsConfig: {}
+  #  options:
+  #    - name: ndots
+  #      value: "1"
   # -- Arkime settings
-  settings:
-    interface: "eth0"
 
 # -- viewer is a daemonset
 viewer:
@@ -68,8 +70,10 @@ viewer:
     repository: ghcr.io/arkime/arkime/arkime
     tag: v5-latest
     #digest:
-  command: ["/opt/arkime/bin/docker.sh", "viewer", "--debug", "--debug"]
-  env: []
+  command: ["/opt/arkime/bin/docker.sh", "viewer", "--insecure", "--debug", "--debug"]
+  env:
+    - name: ARKIME__elasticsearchBasicAuth
+      value: "admin:admin"
   envFrom: []
   resources:
     requests:
@@ -81,17 +85,42 @@ viewer:
   # -- Additional volumeMounts for the controller pod.
   extraVolumeMounts: []
   nodeSelector:
+    kubernetes.io/os: linux
     arkime-viewer: "true"
+  # -- Additional labels to add into metadata.
+  additionalLabels: {}
+  # -- Additional annotations to add into metadata.
+  additionalAnnotations: {}
+  # -- Image pull policy for container images.
+  imagePullPolicy: IfNotPresent
+  # -- Image pull secrets for container images.
+  imagePullSecrets: []
+  # -- Tolerations to allow the pod to be scheduled to nodes with taints.
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+  # -- Specify which Kubernetes scheduler should dispatch the pod.
+  schedulerName: default-scheduler
+  # -- Configure the DNS Policy for the pod
+  dnsPolicy: ClusterFirst
+  # -- Configure DNS Config for the pod
+  dnsConfig: {}
+  #  options:
+  #    - name: ndots
+  #      value: "1"
+    
 
-# -- central-viewer is a daemonset
-central-viewer:
-  replicas: 2
+# -- centralViewer is a daemonset
+centralViewer:
+  replicas: 1
   image: 
     repository: ghcr.io/arkime/arkime/arkime
     tag: v5-latest
     #digest:
-  command: ["/opt/arkime/bin/docker.sh", "viewer", "-n", "central-viewer"]
-  env: []
+  command: ["/opt/arkime/bin/docker.sh", "viewer", "--insecure", "-n", "centralViewer", "--debug", "--debug"]
+  env:
+    - name: ARKIME__elasticsearchBasicAuth
+      value: "admin:admin"
   envFrom: []
   resources:
     requests:
@@ -103,4 +132,75 @@ central-viewer:
   # -- Additional volumeMounts for the controller pod.
   extraVolumeMounts: []
   nodeSelector: {}
+  # -- Additional labels to add into metadata.
+  additionalLabels: {}
+  # -- Additional annotations to add into metadata.
+  additionalAnnotations: {}
+  # -- Image pull policy for container images.
+  imagePullPolicy: IfNotPresent
+  # -- Image pull secrets for container images.
+  imagePullSecrets: []
+  # -- Tolerations to allow the pod to be scheduled to nodes with taints.
+  tolerations: []
+  # -- Specify which Kubernetes scheduler should dispatch the pod.
+  schedulerName: default-scheduler
+  # -- Configure the DNS Policy for the pod
+  dnsPolicy: ClusterFirst
+  # -- Configure DNS Config for the pod
+  dnsConfig: {}
+  #  options:
+  #    - name: ndots
+  #      value: "1"
 
+
+# -- opensearch is included for testing and developement NOT production
+opensearch:
+  create: true
+  replicas: 1
+  image: 
+    repository: public.ecr.aws/opensearchproject/opensearch
+    tag: 2.11.1 # latest version that works with docker desktop on apple silicon
+  env:
+    # - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+    #   value: "PleaseChangeM3!"
+    - name: discovery.type
+      value: single-node
+  envFrom: []
+  livenessProbe:
+    exec:
+      command:
+      - curl
+      - "--insecure"
+      - "--user"
+      - "admin:admin"
+      - "--fail"
+      - "https://localhost:9200/_cat/health"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+  # -- Additional volumeMounts for the controller pod.
+  extraVolumeMounts: []
+  nodeSelector: {}
+  # -- Additional labels to add into metadata.
+  additionalLabels: {}
+  # -- Additional annotations to add into metadata.
+  additionalAnnotations: {}
+  # -- Image pull policy for container images.
+  imagePullPolicy: IfNotPresent
+  # -- Image pull secrets for container images.
+  imagePullSecrets: []
+  # -- Tolerations to allow the pod to be scheduled to nodes with taints.
+  tolerations: []
+  # -- Specify which Kubernetes scheduler should dispatch the pod.
+  schedulerName: default-scheduler
+  # -- Configure the DNS Policy for the pod
+  dnsPolicy: ClusterFirst
+  # -- Configure DNS Config for the pod
+  dnsConfig: {}
+  #  options:
+  #    - name: ndots
+  #      value: "1"
